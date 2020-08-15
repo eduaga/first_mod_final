@@ -38,20 +38,33 @@ def progress(current_value, max_value, complete_message):
     time.sleep(.5)
 
 
+def vk_user_id_resolve(raw_input):
+    if raw_input.isdigit():
+        user_id = int(input('Введите id пользователя VK: '))
+    else:
+        action = 'utils.resolveScreenName'
+        params = vk_get_params()
+        params['screen_name'] = raw_input
+        response = requests.get(f'{VK_BASE_URL}{action}', params).json()
+        user_id = response['response']['object_id']
+    return user_id
+
+
+def vk_get_params():
+    return {
+        'access_token': VK_ACCESS_TOKEN,
+        'v': 5.77
+    }
+
+
 class VkUser:
 
     def __init__(self, user_id):
         self.user_id = user_id
 
-    def get_params(self):
-        return {
-            'access_token': VK_ACCESS_TOKEN,
-            'v': 5.77
-        }
-
     def get_albums(self):
         print('Получаю информацию о всех несервисных альбомах пользователя')
-        params = self.get_params()
+        params = vk_get_params()
         params['owner_id'] = self.user_id
         params['need_system'] = 0
         params['photo_sizes'] = 1
@@ -63,7 +76,7 @@ class VkUser:
     def get_photos(self, method, album_property, album_property_value):
         photos_size_formats = ['s', 'm', 'x', 'o', 'p', 'q', 'r', 'y', 'z', 'w']
         photos_dict = {}
-        params = self.get_params()
+        params = vk_get_params()
         params['owner_id'] = self.user_id
         params[album_property] = album_property_value
         params['extended'] = 1
@@ -200,6 +213,5 @@ def main():
 
 if __name__ == '__main__':
     check_path(VK_PATH)
-    user_id = int(input('Введите id пользователя VK: '))
-    me_as_user = VkUser(user_id)
+    me_as_user = VkUser(vk_user_id_resolve(input("Введите id/имя пользователя: ")))
     main()
