@@ -46,6 +46,7 @@ def vk_user_id_resolve(raw_input):
         params = vk_get_params()
         params['screen_name'] = raw_input
         response = requests.get(f'{VK_BASE_URL}{action}', params).json()
+        print(response)
         user_id = response['response']['object_id']
     return user_id
 
@@ -147,8 +148,12 @@ class YaUploader:
         ya_params['overwrite'] = 'false'
         ya_params['path'] = self.ya_folder_name + os.path.basename(self.file_path)
         resp = requests.get(f'{YA_BASE_URL}{YA_RESOURCE_PATH}upload', params=ya_params, headers=ya_headers).json()
-        upload_file = requests.put(resp["href"], data=data)
-        return upload_file
+        if resp.get("href"):
+            upload_file = requests.put(resp.get("href"), data=data)
+            print(f'Сохраняю файл {os.path.basename(self.file_path)}')
+            return upload_file
+        else:
+            print("Ссылка для загрузки не создана. Возможно некорректно указаны путь и/или токен")
 
     def check_ya_folder(self, folder_name):
         print("Проверяем наличие папки на Я.Диске")
