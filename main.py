@@ -40,14 +40,18 @@ def progress(current_value, max_value, complete_message):
 
 def vk_user_id_resolve(raw_input):
     if raw_input.isdigit():
-        user_id = int(input('Введите id пользователя VK: '))
+        #user_id = int(input('Введите id пользователя VK: '))
+        user_id = raw_input
     else:
         action = 'utils.resolveScreenName'
         params = vk_get_params()
         params['screen_name'] = raw_input
         response = requests.get(f'{VK_BASE_URL}{action}', params).json()
-        print(response)
-        user_id = response['response']['object_id']
+        if not(response['response']):
+            print("Такого пользователя нет")
+            sys.exit()
+        else:
+            user_id = response['response']['object_id']
     return user_id
 
 
@@ -175,38 +179,54 @@ def command():
     return input('Введите команду: ')
 
 
+def download_profile_photos():
+    me_as_user.save_vk_photos_to_disk(VK_PATH, 'profile')
+
+
+def get_all_photos():
+    user_albums = me_as_user.get_albums()
+    i = 0
+    for albums, names in user_albums.items():
+        print(f'Получаю фотографии из альбома {names}')
+        me_as_user.save_vk_photos_to_disk(VK_PATH, albums)
+        i += 1
+        progress(i, len(user_albums), 'Операция завершена.')
+
+
+def ya_disk_upload_func():
+    uploader = YaUploader(VK_PATH)
+    uploader.ya_folder_name = '/from_vk/'
+    uploader.check_ya_folder(uploader.ya_folder_name)
+    i = 0
+    for files in os.listdir(VK_PATH):
+        uploader.file_path = VK_PATH + files
+        uploader.upload()
+        i += 1
+        progress(i, len(os.listdir(VK_PATH)), 'Загрузка на Я.Диск завершена')
+
+
+def get_albums_list():
+    user_albums = me_as_user.get_albums()
+    for albums_id, albums in user_albums.items():
+        print(f'{albums} - {albums_id}')
+    print('\n')
+
+
 def main():
     command_input = command()
     if command_input == 'stop':
         sys.exit()
     if command_input == 'p':
-        me_as_user.save_vk_photos_to_disk(VK_PATH, 'profile')
+        download_profile_photos()
         main()
     elif command_input == 'all':
-        user_albums = me_as_user.get_albums()
-        i = 0
-        for albums, names in user_albums.items():
-            print(f'Получаю фотографии из альбома {names}')
-            me_as_user.save_vk_photos_to_disk(VK_PATH, albums)
-            i += 1
-            progress(i, len(user_albums), 'Операция завершена.')
+        get_all_photos()
         main()
     elif command_input == 'ya':
-        uploader = YaUploader(VK_PATH)
-        uploader.ya_folder_name = '/from_vk/'
-        uploader.check_ya_folder(uploader.ya_folder_name)
-        i = 0
-        for files in os.listdir(VK_PATH):
-            uploader.file_path = VK_PATH + files
-            uploader.upload()
-            i += 1
-            progress(i, len(os.listdir(VK_PATH)), 'Загрузка на Я.Диск завершена')
+        ya_disk_upload_func()
         main()
     elif command_input == 'list':
-        user_albums = me_as_user.get_albums()
-        for albums_id, albums in user_albums.items():
-            print(f'{albums} - {albums_id}')
-        print('\n')
+        get_albums_list()
         main()
     else:
         if command_input.isdigit():
